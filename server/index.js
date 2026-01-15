@@ -96,4 +96,9 @@ app.post('/delete-product', (req, res) => {
   res.redirect('/manage');
 });
 
-app.listen(PORT, () => console.log(`🚀 Live at http://localhost:${PORT}`));
+// Replace your app.listen line with this:
+const PORT = process.env.PORT || 3000; 
+
+app.listen(PORT, () => {
+  console.log(`🚀 Marketplace Server live on port ${PORT}`);
+});
