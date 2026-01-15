@@ -79,24 +79,61 @@ app.get('/products', (req, res) => {
 });
 
 // ADMIN PANEL
+// NEW ADMIN PANEL (With Delete Support)
 app.get('/admin', isAdmin, (req, res) => {
+  const pwd = req.query.pwd || req.body.pwd;
+  
+  // Create a list of current products with Delete buttons
+  const manageList = products.map(p => `
+    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border mb-2">
+      <div class="flex items-center gap-3">
+        <img src="${p.image}" class="w-10 h-10 object-cover rounded">
+        <span class="font-medium">${p.name} - $${p.price}</span>
+      </div>
+      <form action="/delete-product" method="POST" class="m-0">
+        <input type="hidden" name="pwd" value="${pwd}">
+        <input type="hidden" name="id" value="${p.id}">
+        <button class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm">Delete</button>
+      </form>
+    </div>
+  `).join('');
+
   res.send(`
     <html>
       <head><script src="https://cdn.tailwindcss.com"></script></head>
-      <body class="bg-gray-100 p-10">
-        <div class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800">Add New Product</h2>
-            <form action="/add-product" method="POST" class="space-y-4">
-              <input type="hidden" name="pwd" value="${req.query.pwd || ''}">
-              <input type="text" name="itemName" placeholder="Name" class="w-full border p-2 rounded-lg" required>
-              <input type="number" name="itemPrice" placeholder="Price" class="w-full border p-2 rounded-lg" required>
-              <input type="text" name="itemImage" placeholder="Image URL" class="w-full border p-2 rounded-lg">
-              <button class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700">Publish Product</button>
-            </form>
+      <body class="bg-gray-100 p-6">
+        <div class="max-w-2xl mx-auto space-y-8">
+            <div class="bg-white p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">Add New Product</h2>
+                <form action="/add-product" method="POST" class="space-y-4">
+                  <input type="hidden" name="pwd" value="${pwd}">
+                  <input type="text" name="itemName" placeholder="Product Name" class="w-full border p-2 rounded-lg" required>
+                  <input type="number" name="itemPrice" placeholder="Price" class="w-full border p-2 rounded-lg" required>
+                  <input type="text" name="itemImage" placeholder="Image URL" class="w-full border p-2 rounded-lg">
+                  <button class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700">Publish Product</button>
+                </form>
+            </div>
+
+            <div class="bg-white p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">Manage Inventory</h2>
+                ${manageList.length > 0 ? manageList : '<p class="text-gray-400">No products to manage.</p>'}
+            </div>
+            
+            <a href="/products" class="block text-center text-indigo-600 font-medium italic underline">View Public Store</a>
         </div>
       </body>
     </html>
   `);
+});
+
+// NEW DELETE LOGIC
+app.post('/delete-product', isAdmin, (req, res) => {
+    const productId = req.body.id;
+    // Filter out the product with the matching ID
+    products = products.filter(p => p.id != productId);
+    saveProducts(products);
+    // Redirect back to admin with the password so you stay logged in
+    res.redirect(\`/admin?pwd=\${req.body.pwd}\`);
 });
 
 app.post('/add-product', isAdmin, (req, res) => {
