@@ -66,24 +66,24 @@ app.get('/products', (req, res) => {
     <head><script src="https://cdn.tailwindcss.com"></script></head>
     <body class="bg-slate-50">
         <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200 px-4 py-4">
-            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-2">
-                    <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-xl italic">W</div>
-                    <h1 class="text-2xl font-black text-slate-900 italic tracking-tighter">WholesaleConnect</h1>
-                </div>
-                
-                <form action="/products" method="GET" class="relative w-full md:w-96">
-                    <input type="hidden" name="category" value="${cat}">
-                    <input type="text" name="search" value="${req.query.search || ''}" placeholder="Search products..." 
-                           class="w-full bg-slate-100 border-none rounded-xl px-5 py-3 outline-none focus:ring-2 focus:ring-indigo-500 transition">
-                    <button class="absolute right-3 top-3 text-slate-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </button>
-                </form>
-            </div>
-        </nav>
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <img src="https://i.postimg.cc/placeholder-logo.png" class="h-12 w-auto object-contain" alt="WholesaleConnect Logo">
+            <h1 class="text-2xl font-black text-slate-900 italic tracking-tighter hidden md:block">WholesaleConnect</h1>
+        </div>
+        
+        <form action="/products" method="GET" class="relative w-full md:w-96">
+            <input type="hidden" name="category" value="${cat}">
+            <input type="text" name="search" value="${req.query.search || ''}" placeholder="Search products..." 
+                   class="w-full bg-slate-100 border-none rounded-xl px-5 py-3 outline-none focus:ring-2 focus:ring-indigo-500 transition">
+            <button class="absolute right-3 top-3 text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </button>
+        </form>
+    </div>
+</nav>
 
         <main class="max-w-7xl mx-auto p-4 md:p-12">
             <div class="flex overflow-x-auto gap-3 mb-10 pb-4 no-scrollbar">
