@@ -87,12 +87,57 @@ app.get('/manage', (req, res) => {
   `);
 });
 
-app.get('/products', (req, res) => res.json(products));
+app.get('/products', (req, res) => {
+  const searchTerm = req.query.search || "";
+  const filtered = products.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-app.post('/delete-product', (req, res) => {
-  products = products.filter(p => p.id.toString() !== req.body.id.toString());
-  saveProducts(products);
-  res.redirect('/manage');
+  const productCards = filtered.map(p => `
+    <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+      <img class="h-48 w-full object-cover" src="${p.image}" alt="${p.name}">
+      <div class="p-6">
+        <div class="uppercase tracking-wide text-sm text-indigo-500 font-semibold">Wholesale</div>
+        <h3 class="block mt-1 text-lg leading-tight font-medium text-black">${p.name}</h3>
+        <p class="mt-2 text-slate-500 font-bold text-xl">$${p.price}</p>
+        <button class="mt-4 w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700">
+          Contact Seller
+        </button>
+      </div>
+    </div>
+  `).join('');
+
+  res.send(`
+    <html>
+      <head>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <title>Marketplace | Browse</title>
+      </head>
+      <body class="bg-gray-100 min-h-screen">
+        <nav class="bg-white shadow-sm p-4 mb-8">
+          <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-indigo-600">WholesaleConnect</h1>
+            <a href="/" class="text-gray-600 hover:text-indigo-600">Back Home</a>
+          </div>
+        </nav>
+
+        <div class="max-w-6xl mx-auto px-4">
+          <div class="mb-8 flex justify-between items-center">
+            <h2 class="text-3xl font-extrabold text-gray-900">Current Inventory</h2>
+            <form action="/products" method="GET" class="flex gap-2">
+              <input type="text" name="search" value="${searchTerm}" placeholder="Search products..." class="border p-2 rounded-lg">
+              <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg">Search</button>
+            </form>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            ${productCards.length > 0 ? productCards : '<p class="text-gray-500">No products found.</p>'}
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
+});
 });
 
 // Replace your app.listen line with this:
