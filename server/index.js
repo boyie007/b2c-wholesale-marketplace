@@ -39,7 +39,7 @@ app.get('/products', (req, res) => {
       <div class="p-5">
         <h3 class="text-lg font-bold text-gray-800">${p.name}</h3>
         <p class="text-indigo-600 font-bold text-xl mt-1">$${p.price}</p>
-        <a href="https://wa.me/YOUR_PHONE_NUMBER" class="block mt-4 text-center bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600">Order via WhatsApp</a>
+        <a href="https://wa.me/2349127603945 class="block mt-4 text-center bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600">Order via WhatsApp</a>
       </div>
     </div>
   `).join('');
