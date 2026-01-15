@@ -6,31 +6,24 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 const DATA_FILE = './data.json';
-// This pulls the password from Render's settings, or uses 'secret123' on your laptop
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "secret123"; 
 
 const loadProducts = () => {
     if (!fs.existsSync(DATA_FILE)) return [];
     try {
         return JSON.parse(fs.readFileSync(DATA_FILE));
-    } catch (e) {
-        return [];
-    }
+    } catch (e) { return []; }
 };
 
 const saveProducts = (p) => fs.writeFileSync(DATA_FILE, JSON.stringify(p, null, 2));
 let products = loadProducts();
 
-// --- SECURITY CHECK ---
+// SECURITY CHECK
 const isAdmin = (req, res, next) => {
     const providedPwd = req.query.pwd || req.body.pwd;
-    if (providedPwd === ADMIN_PASSWORD) {
-        return next();
-    }
+    if (providedPwd === ADMIN_PASSWORD) return next();
     res.status(403).send("<h1 style='font-family:sans-serif; text-align:center; margin-top:50px;'>403 Forbidden: Admin Access Only</h1>");
 };
-
-// --- ROUTES ---
 
 // HOME PAGE
 app.get('/', (req, res) => {
@@ -52,14 +45,13 @@ app.get('/', (req, res) => {
 app.get('/products', (req, res) => {
   const searchTerm = req.query.search || "";
   const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  
   const cards = filtered.map(p => `
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
       <img class="h-48 w-full object-cover" src="${p.image}">
       <div class="p-5">
         <h3 class="text-lg font-bold text-gray-800">${p.name}</h3>
         <p class="text-indigo-600 font-bold text-xl mt-1">$${p.price}</p>
-        <a href="https://wa.me/YOUR_PHONE_NUMBER?text=I am interested in ${p.name}" 
+        <a href="https://wa.me/2340000000000?text=Hello, I want to buy ${p.name}" 
            class="block mt-4 text-center bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600">
            Order via WhatsApp
         </a>
@@ -80,7 +72,6 @@ app.get('/products', (req, res) => {
             </form>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">${cards}</div>
-          ${filtered.length === 0 ? '<p class="text-center text-gray-400 mt-10">No items found.</p>' : ''}
         </div>
       </body>
     </html>
@@ -92,6 +83,31 @@ app.get('/admin', isAdmin, (req, res) => {
   res.send(`
     <html>
       <head><script src="https://cdn.tailwindcss.com"></script></head>
-      <body class="bg-gray-100 p-10 font-sans">
+      <body class="bg-gray-100 p-10">
         <div class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg">
-            <h2 class="text-2xl font-bold mb-6 text
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Add New Product</h2>
+            <form action="/add-product" method="POST" class="space-y-4">
+              <input type="hidden" name="pwd" value="${req.query.pwd || ''}">
+              <input type="text" name="itemName" placeholder="Name" class="w-full border p-2 rounded-lg" required>
+              <input type="number" name="itemPrice" placeholder="Price" class="w-full border p-2 rounded-lg" required>
+              <input type="text" name="itemImage" placeholder="Image URL" class="w-full border p-2 rounded-lg">
+              <button class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700">Publish Product</button>
+            </form>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
+app.post('/add-product', isAdmin, (req, res) => {
+  const newItem = { id: Date.now(), name: req.body.itemName, price: req.body.itemPrice, image: req.body.itemImage || 'https://via.placeholder.com/300' };
+  products.push(newItem);
+  saveProducts(products);
+  res.redirect('/products');
+});
+
+// --- THE MISSING PORT LOGIC ---
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server live on port ${PORT}`);
+});
