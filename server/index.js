@@ -109,21 +109,32 @@ app.get('/admin', isAdmin, async (req, res) => {
 });
 
 // ADD PRODUCT (WITH IMAGE UPLOAD)
-app.post('/add-product', upload.single('itemImage'), isAdmin, async (req, res) => {
+app.post('/add-product', isAdmin, upload.single('itemImage'), async (req, res) => {
     try {
+        console.log("--- Upload Attempt Started ---");
+        
         if (!req.file) {
-            return res.status(400).send("No image file was uploaded.");
+            console.log("❌ No file found in request");
+            return res.status(400).send("No image file was selected.");
         }
-        await new Product({ 
+
+        console.log("✅ File received from form, sending to Cloudinary...");
+
+        const newProduct = new Product({ 
           name: req.body.itemName, 
           price: req.body.itemPrice, 
           category: req.body.itemCategory, 
-          image: req.file.path 
-        }).save();
+          image: req.file.path // Cloudinary URL
+        });
+
+        await newProduct.save();
+        console.log("✅ Product saved to MongoDB");
+        
         res.redirect('/admin?pwd=' + req.body.pwd);
     } catch (err) {
-        console.error("Cloudinary/DB Error:", err);
-        res.status(500).send("Upload Failed: " + err.message);
+        // This will print the FULL error text in Render Logs
+        console.error("🛑 UPLOAD ERROR DETAILS:", err);
+        res.status(500).send("Upload Failed: " + (err.message || "Unknown Error"));
     }
 });
 
