@@ -5,8 +5,11 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-const MONGO_URI = process.env.MONGO_URI || "PASTE_YOUR_MONGODB_LINK_HERE";
-mongoose.connect(MONGO_URI).then(() => console.log("✅ Connected to MongoDB")).catch(err => console.log(err));
+// Change this:
+const MONGO_URI = process.env.MONGO_URI || "PASTE_LINK_HERE";
+
+// To this (just for a 2-minute test):
+const MONGO_URI = "mongodb+srv:/mongodb+srv://boyie007:Jesusislord1995@cluster0.wkkksmf.mongodb.net/?appName=Cluster0";
 
 const Product = mongoose.model('Product', {
     name: String,
