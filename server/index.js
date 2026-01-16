@@ -42,10 +42,28 @@ const upload = multer({ storage: storage });
 // --- 4. SECURITY CHECK ---
 const MY_PASSWORD = "Jesusislord1995"; // Your specific password
 
+// --- IMPROVED SECURITY CHECK ---
 const isAdmin = (req, res, next) => {
-    const providedPwd = (req.query && req.query.pwd) || (req.body && req.body.pwd);
-    if (providedPwd === MY_PASSWORD) return next();
-    res.status(403).send("<h1>403 Forbidden</h1><p>Invalid admin password. Use ?pwd=Jesusislord1995 in your link.</p>");
+    const MY_PASSWORD = "Jesusislord1995";
+    
+    // Get password from URL (?pwd=...) or Form Body
+    const providedPwd = (req.query.pwd || req.body.pwd || "").toString().trim();
+
+    console.log("Password Attempt:", providedPwd); // This will show in Render logs
+
+    if (providedPwd === MY_PASSWORD) {
+        return next();
+    }
+    
+    res.status(403).send(`
+        <div style="font-family:sans-serif; text-align:center; padding:50px;">
+            <h1 style="color:red;">403 Forbidden</h1>
+            <p>The password you entered is incorrect.</p>
+            <p>Your password was: "<b>${providedPwd}</b>"</p>
+            <hr>
+            <p>Try this link: <a href="/admin?pwd=Jesusislord1995">Click here to Login</a></p>
+        </div>
+    `);
 };
 
 const formatNaira = (num) => '₦' + Number(num).toLocaleString();
