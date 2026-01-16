@@ -111,6 +111,9 @@ app.get('/admin', isAdmin, async (req, res) => {
 // ADD PRODUCT (WITH IMAGE UPLOAD)
 app.post('/add-product', upload.single('itemImage'), isAdmin, async (req, res) => {
     try {
+        if (!req.file) {
+            return res.status(400).send("No image file was uploaded.");
+        }
         await new Product({ 
           name: req.body.itemName, 
           price: req.body.itemPrice, 
@@ -119,7 +122,8 @@ app.post('/add-product', upload.single('itemImage'), isAdmin, async (req, res) =
         }).save();
         res.redirect('/admin?pwd=' + req.body.pwd);
     } catch (err) {
-        res.status(500).send("Error uploading image. Make sure Cloudinary keys are correct.");
+        console.error("Cloudinary/DB Error:", err);
+        res.status(500).send("Upload Failed: " + err.message);
     }
 });
 
