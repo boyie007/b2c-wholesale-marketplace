@@ -22,9 +22,9 @@ const Product = mongoose.model('Product', {
 // --- CLOUDINARY SETUP ---
 // Replace these with your actual Cloudinary details
 cloudinary.config({ 
-  cloud_name: 'dmo1th3xi', 
-  api_key: 'YO961194154614635', 
-  api_secret: '**********' 
+  cloud_name: process.env.CLOUDINARY_NAME, 
+  api_key: process.env.CLOUDINARY_KEY, 
+  api_secret: process.env.CLOUDINARY_SECRET 
 });
 
 const storage = new CloudinaryStorage({
