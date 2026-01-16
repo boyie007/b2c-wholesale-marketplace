@@ -9,8 +9,7 @@ app.use(express.json());
 const MONGO_URI = process.env.MONGO_URI || "PASTE_LINK_HERE";
 
 // To this (just for a 2-minute test):
-const MONGO_URI = "mongodb+srv:/mongodb+srv://boyie007:Jesusislord1995@cluster0.wkkksmf.mongodb.net/?appName=Cluster0";
-
+const MONGO_URI = "mongodb+srv://mongodb+srv://boyie007:Jesusislord1995@cluster0.wkkksmf.mongodb.net/?appName=Cluster0";
 const Product = mongoose.model('Product', {
     name: String,
     price: Number,
