@@ -5,17 +5,21 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Change this:
-const MONGO_URI = process.env.MONGO_URI || "PASTE_LINK_HERE";
+// --- FIXED DATABASE CONNECTION ---
+// I removed the double "mongodb+srv://" and the double declaration
+const MONGO_URI = "mongodb+srv://boyie007:Jesusislord1995@cluster0.wkkksmf.mongodb.net/?retryWrites=true&w=majority";
 
-// To this (just for a 2-minute test):
-const MONGO_URI = "mongodb+srv://mongodb+srv://boyie007:Jesusislord1995@cluster0.wkkksmf.mongodb.net/?appName=Cluster0";
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch(err => console.log("❌ DB Connection Error:", err));
+
 const Product = mongoose.model('Product', {
     name: String,
     price: Number,
     category: String,
     image: String
 });
+// ---------------------------------
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "secret123"; 
 
