@@ -41,17 +41,30 @@ const upload = multer({ storage: storage });
 
 // --- 4. SECURITY CHECK ---
 const isAdmin = (req, res, next) => {
-    // These lines check for the password safely
-    const queryPwd = (req.query && req.query.pwd) ? req.query.pwd : "";
-    const bodyPwd = (req.body && req.body.pwd) ? req.body.pwd : "";
-    
-    const providedPwd = (queryPwd || bodyPwd).toString().trim();
+    // 1. Get password from URL or from a form submission
+    const queryPwd = req.query.pwd;
+    const bodyPwd = req.body.pwd;
+    const providedPwd = (queryPwd || bodyPwd || "").toString().trim();
 
-    if (providedPwd === ADMIN_PASSWORD) {
+    // 2. Check against your real password
+    if (providedPwd === "Jesusislord1995") {
         return next();
     }
     
-    res.status(403).send(`<h1>Access Denied</h1><p>Please use the correct admin link.</p>`);
+    // 3. If it fails, show this screen with a clickable fix
+    res.status(403).send(`
+        <div style="font-family:sans-serif;text-align:center;margin-top:50px;">
+            <h1 style="color:#e11d48;">🔐 Access Denied</h1>
+            <p>The password provided ("${providedPwd}") does not match.</p>
+            <div style="margin-top:20px; padding:20px; background:#f3f4f6; display:inline-block; border-radius:10px;">
+                <p>Click the link below to enter with the correct password:</p>
+                <a href="/admin?pwd=Jesusislord1995" 
+                   style="background:#000; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold;">
+                   Login to Admin Panel
+                </a>
+            </div>
+        </div>
+    `);
 };
 const formatNaira = (num) => '₦' + Number(num).toLocaleString();
 
@@ -90,7 +103,7 @@ app.get('/admin', isAdmin, async (req, res) => {
     res.send(`<html><head><script src="https://cdn.tailwindcss.com"></script></head><body class="p-6 bg-gray-50"><div class="max-w-md mx-auto">
     <h2 class="text-xl font-bold mb-4">Add Product</h2>
     <form action="/add" method="POST" enctype="multipart/form-data" class="space-y-3 bg-white p-6 rounded-xl shadow">
-      <input type="hidden" name="pwd" value="${ADMIN_PASSWORD}">
+      <input type="hidden" name="pwd" value="${Jesusislord1995}">
       <input name="itemName" placeholder="Name" class="w-full border p-2 rounded" required>
       <input type="number" name="itemPrice" placeholder="Price" class="w-full border p-2 rounded" required>
       <input type="file" name="itemImage" class="w-full" required>
