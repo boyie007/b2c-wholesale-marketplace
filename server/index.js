@@ -18,11 +18,14 @@ app.use(express.urlencoded({ extended: true }));
 mongoose.connect(MONGO_URI).then(() => console.log("✅ DB Connected"));
 const Product = mongoose.model('Product', { name: String, price: Number, image: String });
 
-// --- 3. CLOUDINARY (Simplified) ---
-// This line now looks for that one single URL from Cloudinary
-cloudinary.config({ 
-  cloudinary_url: process.env.CLOUDINARY_URL 
-});
+// --- 3. CLOUDINARY (Safe Version) ---
+if (process.env.CLOUDINARY_URL) {
+  cloudinary.config({ 
+    cloudinary_url: process.env.CLOUDINARY_URL.trim() 
+  });
+} else {
+  console.error("❌ CLOUDINARY_URL is missing from Render Environment Variables!");
+}
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
