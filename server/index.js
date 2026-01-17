@@ -5,6 +5,9 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 
 const app = express();
+// --- 1. MIDDLEWARE ---
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ==========================================
 // 🛠️ CUSTOMIZE YOUR SETTINGS HERE
@@ -14,9 +17,7 @@ const WHATSAPP_NUMBER = "2349127603945"; // Your contact
 const MONGO_URI = "mongodb+srv://boyie007:Jesusislord1995@cluster0.wkkksmf.mongodb.net/?retryWrites=true&w=majority";
 // ==========================================
 
-// --- 1. MIDDLEWARE ---
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
 
 // --- 2. DATABASE ---
 mongoose.connect(MONGO_URI).then(() => console.log("✅ DB Connected"));
@@ -40,11 +41,18 @@ const upload = multer({ storage: storage });
 
 // --- 4. SECURITY CHECK ---
 const isAdmin = (req, res, next) => {
-    const providedPwd = (req.query.pwd || req.body.pwd || "").toString().trim();
-    if (providedPwd === ADMIN_PASSWORD) return next();
-    res.status(403).send(`<h1>403 Forbidden</h1><p>Incorrect Password. Use: ?pwd=${ADMIN_PASSWORD}</p>`);
-};
+    // These lines check for the password safely
+    const queryPwd = (req.query && req.query.pwd) ? req.query.pwd : "";
+    const bodyPwd = (req.body && req.body.pwd) ? req.body.pwd : "";
+    
+    const providedPwd = (queryPwd || bodyPwd).toString().trim();
 
+    if (providedPwd === ADMIN_PASSWORD) {
+        return next();
+    }
+    
+    res.status(403).send(`<h1>Access Denied</h1><p>Please use the correct admin link.</p>`);
+};
 const formatNaira = (num) => '₦' + Number(num).toLocaleString();
 
 // --- 5. ROUTES ---
