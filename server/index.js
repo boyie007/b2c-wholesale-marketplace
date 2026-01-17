@@ -5,28 +5,21 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 
 const app = express();
-// --- 1. MIDDLEWARE ---
+
+// --- 1. CRITICAL MIDDLEWARE (MUST BE AT THE TOP) ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ==========================================
-// 🛠️ CUSTOMIZE YOUR SETTINGS HERE
-// ==========================================
-const ADMIN_PASSWORD = "Jesusislord1995"; 
-const WHATSAPP_NUMBER = "2349127603945"; // Your contact
+// --- 2. CONFIGURATION ---
+const MY_PASSWORD = "Jesusislord1995";
+const WHATSAPP = "2349127603945";
 const MONGO_URI = "mongodb+srv://boyie007:Jesusislord1995@cluster0.wkkksmf.mongodb.net/?retryWrites=true&w=majority";
-// ==========================================
 
+// --- 3. DATABASE ---
+mongoose.connect(MONGO_URI).then(() => console.log("✅ Database Connected"));
+const Product = mongoose.model('Product', { name: String, price: Number, image: String });
 
-
-// --- 2. DATABASE ---
-mongoose.connect(MONGO_URI).then(() => console.log("✅ DB Connected"));
-
-const Product = mongoose.model('Product', {
-    name: String, price: Number, category: String, image: String
-});
-
-// --- 3. CLOUDINARY (Uses Render Env Vars) ---
+// --- 4. CLOUDINARY SETUP ---
 cloudinary.config({ 
   cloud_name: process.env.CLOUDINARY_NAME, 
   api_key: process.env.CLOUDINARY_KEY, 
@@ -35,95 +28,95 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: { folder: 'wholesale_connect', allowed_formats: ['jpg', 'png'] },
+  params: { folder: 'wholesale_connect', allowed_formats: ['jpg', 'png', 'jpeg'] },
 });
 const upload = multer({ storage: storage });
 
-// --- 4. SECURITY CHECK ---
+// --- 5. THE SECURITY CHECK ---
 const isAdmin = (req, res, next) => {
-    // 1. Get password from URL or from a form submission
-    const queryPwd = req.query.pwd;
-    const bodyPwd = req.body.pwd;
-    const providedPwd = (queryPwd || bodyPwd || "").toString().trim();
+    // We check both the URL (?pwd=) and the hidden form field (req.body.pwd)
+    const queryPwd = req.query ? req.query.pwd : null;
+    const bodyPwd = req.body ? req.body.pwd : null;
+    const provided = (queryPwd || bodyPwd || "").toString().trim();
 
-    // 2. Check against your real password
-    if (providedPwd === "Jesusislord1995") {
+    if (provided === MY_PASSWORD) {
         return next();
     }
-    
-    // 3. If it fails, show this screen with a clickable fix
     res.status(403).send(`
-        <div style="font-family:sans-serif;text-align:center;margin-top:50px;">
-            <h1 style="color:#e11d48;">🔐 Access Denied</h1>
-            <p>The password provided ("${providedPwd}") does not match.</p>
-            <div style="margin-top:20px; padding:20px; background:#f3f4f6; display:inline-block; border-radius:10px;">
-                <p>Click the link below to enter with the correct password:</p>
-                <a href="/admin?pwd=Jesusislord1995" 
-                   style="background:#000; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold;">
-                   Login to Admin Panel
-                </a>
-            </div>
+        <div style="text-align:center; padding:50px; font-family:sans-serif;">
+            <h1 style="color:red;">403 Forbidden</h1>
+            <p>Incorrect Password. Current attempt: "<b>${provided}</b>"</p>
+            <a href="/admin?pwd=${MY_PASSWORD}" style="background:black; color:white; padding:10px; text-decoration:none; border-radius:5px;">Login with Link</a>
         </div>
     `);
 };
-const formatNaira = (num) => '₦' + Number(num).toLocaleString();
 
-// --- 5. ROUTES ---
+// --- 6. ROUTES ---
 
-// HOME: Redirects straight to products
+// Redirect Home to Products
 app.get('/', (req, res) => res.redirect('/products'));
 
-// PRODUCTS PAGE
+// Product Gallery
 app.get('/products', async (req, res) => {
-  const products = await Product.find();
-  const cards = products.map(p => `
-    <div class="bg-white rounded-2xl shadow-sm border p-4 flex flex-col">
-      <img class="h-48 w-full object-cover rounded-xl mb-4" src="${p.image}">
-      <h3 class="font-bold text-gray-800">${p.name}</h3>
-      <p class="text-indigo-600 font-black text-xl mb-4">${formatNaira(p.price)}</p>
-      <a href="https://wa.me/${WHATSAPP_NUMBER}?text=I want to buy ${p.name}" class="text-center bg-green-500 text-white py-2 rounded-lg font-bold">Order</a>
-    </div>`).join('');
-
-  res.send(`<html><head><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-gray-100 p-6"><h1 class="text-2xl font-bold mb-6">WholesaleConnect</h1><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">${cards}</div></body></html>`);
+    const products = await Product.find();
+    const cards = products.map(p => `
+        <div style="border:1px solid #ddd; border-radius:15px; padding:15px; background:white; text-align:center;">
+            <img src="${p.image}" style="width:100%; height:200px; object-fit:cover; border-radius:10px;">
+            <h3>${p.name}</h3>
+            <p style="font-weight:bold; color:indigo;">₦${Number(p.price).toLocaleString()}</p>
+            <a href="https://wa.me/${WHATSAPP}?text=I+want+to+buy+${p.name}" style="background:#25D366; color:white; padding:10px; display:block; border-radius:10px; text-decoration:none; font-weight:bold;">Order on WhatsApp</a>
+        </div>`).join('');
+    res.send(`<html><head><script src="https://cdn.tailwindcss.com"></script></head><body class="bg-gray-50 p-6">
+        <h1 class="text-3xl font-black mb-8">WHOLESALE CONNECT</h1>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">${cards}</div>
+    </body></html>`);
 });
 
-// ADMIN PAGE
+// Admin Dashboard
 app.get('/admin', isAdmin, async (req, res) => {
     const products = await Product.find();
-    const list = products.map(p => `
-        <div class="flex justify-between bg-white p-3 mb-2 rounded border">
+    const rows = products.map(p => `
+        <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
             <span>${p.name}</span>
-            <form action="/delete" method="POST" class="m-0">
-                <input type="hidden" name="pwd" value="${ADMIN_PASSWORD}">
+            <form action="/delete" method="POST" style="margin:0;">
+                <input type="hidden" name="pwd" value="${MY_PASSWORD}">
                 <input type="hidden" name="id" value="${p._id}">
-                <button class="text-red-500 font-bold">Delete</button>
+                <button style="color:red; font-weight:bold;">Delete</button>
             </form>
         </div>`).join('');
-    
-    res.send(`<html><head><script src="https://cdn.tailwindcss.com"></script></head><body class="p-6 bg-gray-50"><div class="max-w-md mx-auto">
-    <h2 class="text-xl font-bold mb-4">Add Product</h2>
-    <form action="/add" method="POST" enctype="multipart/form-data" class="space-y-3 bg-white p-6 rounded-xl shadow">
-      <input type="hidden" name="pwd" value="${Jesusislord1995}">
-      <input name="itemName" placeholder="Name" class="w-full border p-2 rounded" required>
-      <input type="number" name="itemPrice" placeholder="Price" class="w-full border p-2 rounded" required>
-      <input type="file" name="itemImage" class="w-full" required>
-      <button class="w-full bg-black text-white p-3 rounded font-bold">Upload Product</button>
-    </form>
-    <div class="mt-10">${list}</div></div></body></html>`);
+
+    res.send(`<html><head><script src="https://cdn.tailwindcss.com"></script></head><body class="p-8 bg-gray-100"><div class="max-w-md mx-auto bg-white p-6 rounded-3xl shadow-lg">
+        <h2 class="text-xl font-bold mb-4">Add New Product</h2>
+        <form action="/add" method="POST" enctype="multipart/form-data" class="space-y-4">
+            <input type="hidden" name="pwd" value="${MY_PASSWORD}">
+            <input name="itemName" placeholder="Product Name" class="w-full border p-3 rounded-xl" required>
+            <input type="number" name="itemPrice" placeholder="Price (Naira)" class="w-full border p-3 rounded-xl" required>
+            <input type="file" name="itemImage" class="w-full border p-3 rounded-xl" accept="image/*" required>
+            <button class="w-full bg-black text-white py-3 rounded-xl font-bold">Upload Product</button>
+        </form>
+        <div class="mt-8">${rows}</div>
+    </div></body></html>`);
 });
 
-// ADD PRODUCT
+// Add Product Action
 app.post('/add', isAdmin, upload.single('itemImage'), async (req, res) => {
     try {
-        await new Product({ name: req.body.itemName, price: req.body.itemPrice, image: req.file.path }).save();
-        res.redirect('/admin?pwd=' + ADMIN_PASSWORD);
-    } catch (e) { res.status(500).send("Upload Error: " + e.message); }
+        await new Product({ 
+            name: req.body.itemName, 
+            price: req.body.itemPrice, 
+            image: req.file.path 
+        }).save();
+        res.redirect('/admin?pwd=' + MY_PASSWORD);
+    } catch (err) {
+        res.status(500).send("Upload Error: " + err.message);
+    }
 });
 
-// DELETE PRODUCT
+// Delete Product Action
 app.post('/delete', isAdmin, async (req, res) => {
     await Product.findByIdAndDelete(req.body.id);
-    res.redirect('/admin?pwd=' + ADMIN_PASSWORD);
+    res.redirect('/admin?pwd=' + MY_PASSWORD);
 });
 
-app.listen(process.env.PORT || 3000, () => console.log('🚀 Server Live'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log('🚀 Server is running on port ' + PORT));
