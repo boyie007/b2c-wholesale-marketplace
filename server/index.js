@@ -14,30 +14,44 @@ const MONGO_URI = "mongodb+srv://boyie007:Jesusislord1995@cluster0.wkkksmf.mongo
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- 2. DATABASE ---
-mongoose.connect(MONGO_URI).then(() => console.log("✅ DB Connected"));
-const Product = mongoose.model('Product', { name: String, price: Number, image: String });
+// --- 2. CLOUDINARY CONFIG (BYPASS AUTO-CRASH) ---
+// We extract the pieces manually to prevent the library from crashing on startup
+const rawUrl = process.env.CLOUDINARY_URL || "";
+if (rawUrl.includes('://')) {
+    const parts = rawUrl.split('://')[1].split('@');
+    const auth = parts[0].split(':');
+    const cloudName = parts[1];
 
-// --- 3. CLOUDINARY (Safe Version) ---
-if (process.env.CLOUDINARY_URL) {
-  cloudinary.config({ 
-    cloudinary_url: process.env.CLOUDINARY_URL.trim() 
-  });
+    cloudinary.config({
+        cloud_name: cloudName,
+        api_key: auth[0],
+        api_secret: auth[1],
+        secure: true
+    });
+    console.log("✅ Cloudinary Configured Manually");
 } else {
-  console.error("❌ CLOUDINARY_URL is missing from Render Environment Variables!");
+    console.log("⚠️ Cloudinary URL not found or invalid format");
 }
 
+// --- 3. DATABASE ---
+mongoose.connect(MONGO_URI)
+    .then(() => console.log("✅ Database Connected"))
+    .catch(err => console.error("❌ DB Error:", err));
+
+const Product = mongoose.model('Product', { name: String, price: Number, image: String });
+
 const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: { folder: 'wholesale_connect', allowed_formats: ['jpg', 'png', 'jpeg'] },
+    cloudinary: cloudinary,
+    params: { folder: 'wholesale_connect', allowed_formats: ['jpg', 'png', 'jpeg'] },
 });
 const upload = multer({ storage: storage });
 
 // --- 4. SECURITY ---
 const isAdmin = (req, res, next) => {
-    const provided = (req.query.pwd || req.body.pwd || "").toString().trim();
-    const referer = req.get('Referer') || "";
-    if (provided === MY_PASSWORD || referer.includes(`pwd=${MY_PASSWORD}`)) return next();
+    const queryPwd = req.query ? req.query.pwd : null;
+    const bodyPwd = req.body ? req.body.pwd : null;
+    const provided = (queryPwd || bodyPwd || "").toString().trim();
+    if (provided === MY_PASSWORD || (req.get('Referer') || "").includes(`pwd=${MY_PASSWORD}`)) return next();
     res.status(403).send("Access Denied.");
 };
 
@@ -47,16 +61,13 @@ app.get('/', (req, res) => res.redirect('/products'));
 app.get('/products', async (req, res) => {
     const products = await Product.find();
     const cards = products.map(p => `
-        <div style="border:1px solid #ddd; border-radius:15px; padding:15px; background:white; text-align:center;">
+        <div style="border:1px solid #ddd; border-radius:15px; padding:15px; background:white; text-align:center; margin-bottom:20px;">
             <img src="${p.image}" style="width:100%; height:200px; object-fit:cover; border-radius:10px;">
             <h3>${p.name}</h3>
             <p style="font-weight:bold; color:#4f46e5;">₦${Number(p.price).toLocaleString()}</p>
             <a href="https://wa.me/${WHATSAPP}?text=I+buy+${p.name}" style="background:#25D366; color:white; padding:10px; display:block; border-radius:10px; text-decoration:none;">Order</a>
         </div>`).join('');
-    res.send(`<html><body style="font-family:sans-serif; background:#f9fafb; padding:20px;">
-        <h1 style="text-align:center;">WHOLESALE CONNECT</h1>
-        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:20px;">${cards}</div>
-    </body></html>`);
+    res.send(`<html><body style="font-family:sans-serif; background:#f9fafb; padding:20px;"><h1 style="text-align:center;">WHOLESALE</h1><div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:20px;">${cards}</div></body></html>`);
 });
 
 app.get('/admin', isAdmin, async (req, res) => {
@@ -81,4 +92,4 @@ app.post('/add', isAdmin, upload.single('itemImage'), async (req, res) => {
     }
 });
 
-app.listen(process.env.PORT || 3000);
+app.listen(process.env.PORT || 3000, () => console.log("🚀 Server running"));
