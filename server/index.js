@@ -6,7 +6,7 @@ const multer = require('multer');
 
 const app = express();
 
-// --- 1. SECURE CONFIGURATION ---
+// --- 1. SECURE CONFIG ---
 const MY_PASSWORD = process.env.ADMIN_PASSWORD || "Jesusislord1995";
 const WHATSAPP = process.env.WHATSAPP_NUMBER || "2349127603945";
 const MONGO_URI = process.env.MONGO_URI; 
@@ -23,9 +23,14 @@ if (rawUrl.includes('://')) {
     cloudinary.config({ cloud_name: cloudName, api_key: auth[0], api_secret: auth[1], secure: true });
 }
 
-// --- 3. DATABASE ---
+// --- 3. DATABASE (Now includes Category) ---
 mongoose.connect(MONGO_URI).then(() => console.log("✅ DB Connected"));
-const Product = mongoose.model('Product', { name: String, price: Number, image: String });
+const Product = mongoose.model('Product', { 
+    name: String, 
+    price: Number, 
+    image: String,
+    category: String 
+});
 
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
@@ -33,96 +38,104 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- 4. SECURITY MIDDLEWARE ---
+// --- 4. SECURITY ---
 const isAdmin = (req, res, next) => {
     const provided = (req.query.pwd || req.body.pwd || "").toString().trim();
-    const referer = (req.get('Referer') || "");
-    if (provided === MY_PASSWORD || referer.includes(`pwd=${MY_PASSWORD}`)) return next();
-    res.status(403).send(`<body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;"><div><h1>🔐 Restricted Access</h1><p>Please use your secure admin link.</p></div></body>`);
+    if (provided === MY_PASSWORD || (req.get('Referer') || "").includes(`pwd=${MY_PASSWORD}`)) return next();
+    res.status(403).send("<h1>Restricted</h1>");
 };
 
-// --- 5. MODERN UI/X ROUTES ---
+// --- 5. UI ROUTES ---
 
-// Main Shop Page
 app.get('/products', async (req, res) => {
-    const products = await Product.find();
+    const { q, cat } = req.query;
+    let query = {};
+    if (q) query.name = { $regex: q, $options: 'i' };
+    if (cat && cat !== 'All') query.category = cat;
+
+    const products = await Product.find(query);
+    const categories = ['All', 'Electronics', 'Fashion', 'Home', 'Beauty', 'Others'];
+
+    const catButtons = categories.map(c => `
+        <a href="/products?cat=${c}" style="padding:10px 20px; background:${cat === c || (!cat && c === 'All') ? '#000' : '#fff'}; color:${cat === c || (!cat && c === 'All') ? '#fff' : '#000'}; border-radius:30px; text-decoration:none; border:1px solid #eee; font-size:14px; white-space:nowrap;">${c}</a>
+    `).join('');
+
     const cards = products.map(p => `
-        <div style="background:white; border-radius:24px; overflow:hidden; box-shadow:0 10px 25px -5px rgba(0,0,0,0.05); transition: transform 0.2s;">
-            <img src="${p.image}" style="width:100%; height:220px; object-fit:cover;">
-            <div style="padding:20px; text-align:left;">
-                <h3 style="margin:0; font-size:1.1rem; color:#1f2937; font-weight:700;">${p.name}</h3>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
-                    <span style="font-size:1.25rem; font-weight:900; color:#000;">₦${Number(p.price).toLocaleString()}</span>
-                    <a href="https://wa.me/${WHATSAPP}?text=I+want+to+buy+${p.name}" style="background:#000; color:#fff; padding:10px 18px; border-radius:12px; text-decoration:none; font-size:0.9rem; font-weight:700;">Order</a>
+        <div style="background:white; border-radius:20px; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
+            <img src="${p.image}" style="width:100%; height:200px; object-fit:cover;">
+            <div style="padding:15px;">
+                <span style="font-size:12px; color:gray; text-transform:uppercase;">${p.category || 'General'}</span>
+                <h3 style="margin:5px 0; font-size:16px;">${p.name}</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+                    <b style="font-size:18px;">₦${Number(p.price).toLocaleString()}</b>
+                    <a href="https://wa.me/${WHATSAPP}?text=I+want+to+buy+${p.name}" style="background:#25D366; color:white; padding:8px 15px; border-radius:10px; text-decoration:none; font-weight:bold; font-size:13px;">Order</a>
                 </div>
             </div>
-        </div>`).join('');
-
-    res.send(`
-    <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background:#fbfbfd; color:#1d1d1f; margin:0; padding:20px; }
-                .header { max-width:1200px; margin: 40px auto; text-align:left; }
-                .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:25px; max-width:1200px; margin:auto; }
-                h1 { font-size:3rem; font-weight:800; letter-spacing:-1px; margin-bottom:10px; }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>Wholesale Connect.</h1>
-                <p style="color:#86868b; font-size:1.2rem;">Premium items at wholesale rates.</p>
-            </div>
-            <div class="grid">${cards || "Our catalog is being updated..."}</div>
-        </body>
-    </html>`);
-});
-
-// Admin Page (Simplified & Dark Mode UI)
-app.get('/admin', isAdmin, async (req, res) => {
-    const products = await Product.find();
-    const rows = products.map(p => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:#fff; margin-bottom:10px; border-radius:16px; border:1px solid #e5e7eb;">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <img src="${p.image}" style="width:48px; height:48px; border-radius:10px; object-fit:cover;">
-                <span style="font-weight:600;">${p.name}</span>
-            </div>
-            <form action="/delete" method="POST" onsubmit="return confirm('Delete?');" style="margin:0;">
-                <input type="hidden" name="pwd" value="${MY_PASSWORD}"><input type="hidden" name="productId" value="${p._id}">
-                <button style="background:#fee2e2; color:#ef4444; border:none; padding:8px 14px; border-radius:8px; font-weight:700; cursor:pointer;">Delete</button>
-            </form>
         </div>`).join('');
 
     res.send(`
     <html>
         <head><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-        <body style="font-family:sans-serif; background:#f9fafb; padding:20px;">
-            <div style="max-width:450px; margin:auto;">
-                <div style="background:#000; color:#fff; padding:30px; border-radius:28px; margin-bottom:20px;">
-                    <h2 style="margin:0 0 20px 0;">Add Product</h2>
-                    <form action="/add" method="POST" enctype="multipart/form-data">
-                        <input type="hidden" name="pwd" value="${MY_PASSWORD}">
-                        <input name="itemName" placeholder="Product Name" style="width:100%; padding:14px; margin-bottom:12px; border-radius:12px; border:none;" required>
-                        <input type="number" name="itemPrice" placeholder="Price (₦)" style="width:100%; padding:14px; margin-bottom:12px; border-radius:12px; border:none;" required>
-                        <input type="file" name="itemImage" style="margin-bottom:20px; color:#fff;" required>
-                        <button style="width:100%; background:#fff; color:#000; padding:16px; border:none; border-radius:14px; font-weight:800; cursor:pointer;">Publish Now</button>
-                    </form>
+        <body style="font-family:sans-serif; background:#f9fafb; margin:0; padding:20px;">
+            <div style="max-width:1100px; margin:auto;">
+                <h1 style="font-size:28px; font-weight:900;">Marketplace</h1>
+                
+                <form action="/products" method="GET" style="margin:20px 0; display:flex; gap:10px;">
+                    <input name="q" value="${q || ''}" placeholder="Search products..." style="flex:1; padding:15px; border-radius:15px; border:1px solid #ddd; outline:none;">
+                    <button style="padding:15px 25px; background:black; color:white; border-radius:15px; border:none; cursor:pointer; font-weight:bold;">Search</button>
+                </form>
+
+                <div style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin-bottom:20px; scrollbar-width: none;">${catButtons}</div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:20px;">
+                    ${cards || "<p>No products found.</p>"}
                 </div>
-                ${rows}
             </div>
         </body>
     </html>`);
 });
 
-app.get('/', (req, res) => res.redirect('/products'));
+// Admin Dashboard
+app.get('/admin', isAdmin, async (req, res) => {
+    const products = await Product.find();
+    const rows = products.map(p => `
+        <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
+            <span>${p.name} (${p.category})</span>
+            <form action="/delete" method="POST" style="margin:0;">
+                <input type="hidden" name="pwd" value="${MY_PASSWORD}"><input type="hidden" name="productId" value="${p._id}">
+                <button style="color:red; background:none; border:none; cursor:pointer;">Delete</button>
+            </form>
+        </div>`).join('');
+
+    res.send(`
+    <html><body style="font-family:sans-serif; background:#f3f4f6; padding:20px;">
+        <div style="max-width:450px; margin:auto; background:white; padding:25px; border-radius:20px;">
+            <h2>Add Product</h2>
+            <form action="/add" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="pwd" value="${MY_PASSWORD}">
+                <input name="itemName" placeholder="Name" style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid #ddd;" required>
+                <input type="number" name="itemPrice" placeholder="Price" style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid #ddd;" required>
+                <select name="itemCategory" style="width:100%; padding:12px; margin-bottom:10px; border-radius:10px; border:1px solid #ddd;">
+                    <option>Electronics</option><option>Fashion</option><option>Home</option><option>Beauty</option><option>Others</option>
+                </select>
+                <input type="file" name="itemImage" style="margin-bottom:20px;" required>
+                <button style="width:100%; padding:15px; background:black; color:white; border-radius:10px; border:none; font-weight:bold;">Publish</button>
+            </form>
+            <hr style="margin:30px 0; border:0; border-top:1px solid #eee;">
+            ${rows}
+        </div>
+    </body></html>`);
+});
+
 app.post('/add', isAdmin, upload.single('itemImage'), async (req, res) => {
-    await new Product({ name: req.body.itemName, price: req.body.itemPrice, image: req.file.path }).save();
+    await new Product({ name: req.body.itemName, price: req.body.itemPrice, category: req.body.itemCategory, image: req.file.path }).save();
     res.redirect('/admin?pwd=' + MY_PASSWORD);
 });
+
 app.post('/delete', isAdmin, async (req, res) => {
     await Product.findByIdAndDelete(req.body.productId);
     res.redirect('/admin?pwd=' + MY_PASSWORD);
 });
 
+app.get('/', (req, res) => res.redirect('/products'));
 app.listen(process.env.PORT || 3000);
